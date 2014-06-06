@@ -1,0 +1,2 @@
+﻿  test.c
+c:\putty-0.63-dev\unix\unix.h(11): fatal error C1083: Cannot open include file: 'dlfcn.h': No such file or directory
