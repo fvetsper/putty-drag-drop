@@ -7819,7 +7819,7 @@ static void proccess_scp(struct ssh_channel *c,char * dest_path,char *src_path, 
 				if (strstr(data,"Permission denied")) 
 					nonfatal("Permission denied");
 				else
-					nonfatal("The operation failed for unknowen reason");
+					nonfatal("The operation failed for unknown reason");
 				close_rfile(s->f);
 				sshfwd_write_eof(c);
 				crStopV;
@@ -7827,6 +7827,8 @@ static void proccess_scp(struct ssh_channel *c,char * dest_path,char *src_path, 
 		}
 		
 		ssh->processing_data = 1;
+
+		setup_file_progress_bar(s->size.lo,4096);
 
 		for (s->i = uint64_make(0,0); uint64_compare(s->i,s->size) < 0; s->i = uint64_add32(s->i,4096)) 
 		{
@@ -7838,8 +7840,10 @@ static void proccess_scp(struct ssh_channel *c,char * dest_path,char *src_path, 
 			read_from_file(s->f, transbuf, k);
 	
 			scp_send_filedata(transbuf, k);
+			advance_progress_bar();
 		}
 		close_rfile(s->f);
+		close_file_progress_bar();
 		sshfwd_write_eof(c);
 	}
 
@@ -10080,12 +10084,12 @@ static int ssh_send_secondary_channel(void *handle, char *data, int len)
 	return ssh_sendbuffer(ssh);
 }
 
-static void ssh_send_scp(void *handle, char *dest_path, char *src_path)
+static void ssh_send_scp(void *handle, char *dest_path, char *src_path, int processing_data)
 {
 	struct ssh_channel * c;
 	Ssh ssh = (Ssh) handle;
 	c = ssh->secondary_chan;
-	ssh->processing_data = 0;
+	ssh->processing_data = processing_data;
 	proccess_scp(c, dest_path,src_path, NULL, "");
 }
 

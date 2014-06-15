@@ -43,6 +43,8 @@ static struct dlgparam dp;
 
 static char **events = NULL;
 static int nevents = 0, negsize = 0;
+static HWND hwndPB;
+static HWND hWndDlg;
 
 extern Conf *conf;		       /* defined in window.c */
 
@@ -227,6 +229,23 @@ static int CALLBACK AboutProc(HWND hwnd, UINT msg,
 	return 0;
     }
     return 0;
+}
+
+static int CALLBACK ProgressBarProc(HWND hWndDlg, UINT msg,
+			      WPARAM wParam, LPARAM lParam) {
+	switch(msg)
+	{
+		case WM_INITDIALOG:
+			CreateWindowEx(0, PROGRESS_CLASS, NULL,
+						   WS_CHILD | WS_VISIBLE,
+					  20, 20, 260, 17,
+					  hWndDlg, NULL, hinst, NULL);
+
+			SendMessage(hwndPB, PBM_SETRANGE, 0, MAKELPARAM(0, lParam));
+			SendMessage(hwndPB, PBM_SETSTEP, (WPARAM) 1, 0); 
+
+			return TRUE;
+	}
 }
 
 static int SaneDialogBox(HINSTANCE hinst,
@@ -616,6 +635,53 @@ void show_help(HWND hwnd)
 {
     launch_help(hwnd, NULL);
 }
+
+void show_progress_bar(HWND hwnd, DWORD chunks)
+{
+	int n = 0;
+	WNDCLASS wc;
+
+	wc.style = 0;
+	wc.lpfnWndProc = DefDlgProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = DLGWINDOWEXTRA + 2*sizeof(LONG_PTR);
+    wc.hInstance = hinst;
+    wc.hIcon = LoadIcon(hinst, MAKEINTRESOURCE(IDI_MAINICON));
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH) (COLOR_BACKGROUND +1);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = "ProgressBar";
+    RegisterClass(&wc);
+
+
+	hWndDlg = CreateWindowEx(0, "ProgressBar", NULL,
+						   WS_OVERLAPPEDWINDOW,
+					  300, 300, 400, 260,
+					  hwnd, NULL, hinst, NULL);
+
+	hwndPB = CreateWindowEx(0, PROGRESS_CLASS, NULL,
+						   WS_CHILD | WS_VISIBLE,
+					  20, 20, 260, 17,
+					  hWndDlg, NULL, hinst, NULL);
+
+
+	ShowWindow(hWndDlg, SW_SHOW);
+	UpdateWindow(hWndDlg);
+
+	SendMessage(hwndPB, PBM_SETRANGE, 0, MAKELPARAM(0, chunks));
+	SendMessage(hwndPB, PBM_SETSTEP, (WPARAM) 1, 0); 
+	SendMessage(hwndPB, PBM_SETBARCOLOR , 0, (LPARAM) RGB(51,153,51)); 
+
+}
+
+void advance_progress_bar_dlg() {
+	SendMessage(hwndPB, PBM_STEPIT, 0, 0); 
+}
+
+void close_file_progress_bar_dlg() {
+	DestroyWindow(hWndDlg);
+}
+
 
 void defuse_showwindow(void)
 {

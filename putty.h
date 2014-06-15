@@ -2,6 +2,7 @@
 #define PUTTY_PUTTY_H
 
 #include <stddef.h>		       /* for wchar_t */
+#include <stdint.h>
 #include "int64.h"
 
 /*
@@ -448,7 +449,7 @@ struct backend_tag {
     void (*unthrottle) (void *handle, int);
     int (*cfg_info) (void *handle);
 	void (*ssh_send_non_terminal_data)(void *handle,char *data, int len);
-    void (*ssh_send_scp)(void *handle, char *dest_path, char *src_path);
+    void (*ssh_send_scp)(void *handle, char *dest_path, char *src_path, int processing_data);
 	int (*ssh_send_secondary_channel)(void *handle,char *data, int len);
 	void (*ssh_open_second_channel)(void *handle);
 	//Socket (*ssh_get_socket) (void *handle);
@@ -663,6 +664,9 @@ enum {
 };
 void set_busy_status(void *frontend, int status);
 
+void setup_file_progress_bar(DWORD file_size, int chunk_size);
+void advance_progress_bar(void);
+void close_file_progress_bar(void);
 void cleanup_exit(int);
 
 /*

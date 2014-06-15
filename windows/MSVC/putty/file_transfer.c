@@ -39,24 +39,36 @@ int non_term_data(const char *data, int len)
 	int pre_len = strlen(pwd);
 	char dest_path[1024];
 	int i = 0;
+	int get_path = FALSE;
+	char * pch;
 	
 
 	memcpy(localbuf,data,len);
-
+	//nonfatal(localbuf);
 	
-	if (strncmp(pwd,localbuf,pre_len) == 0) {
+	if (strncmp(pwd,localbuf,pre_len) == 0 && (pch = strchr(localbuf,'/')) != NULL) {
 		localbuf+=pre_len;
 		nchars-=pre_len;
+	
+		while(nchars > 0 && (*localbuf != '\r' && *localbuf != '\n')) {
+			c = *localbuf++;
+			dest_path[i++] = c;
+			nchars--;
+		}
+		get_path = TRUE;
 	}
-	while(nchars > 0 && *localbuf != '\r') {
-		c = *localbuf++;
-		dest_path[i++] = c;
-		nchars--;
+	// the response not starts with "pwd\r\n"
+	else if ((pch = strchr(localbuf,'/')) != NULL) {
+			while(nchars > 0 && (*pch != '\r' && *pch != '\n')) {
+				c = *pch++;
+				dest_path[i++] = c;
+				nchars--;
+			}
+		get_path = TRUE;
 	}
 	dest_path[i++] = '\0';
 
-	
-	back->ssh_send_scp(backhandle,dest_path,src_path);
+	back->ssh_send_scp(backhandle,dest_path,src_path, !get_path);
 
 	sfree(headbuf);
 }

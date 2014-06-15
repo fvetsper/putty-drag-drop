@@ -4,6 +4,7 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <time.h>
@@ -19,6 +20,7 @@
 #include "terminal.h"
 #include "storage.h"
 #include "win_res.h"
+#include "int64.h"
 
 #ifndef NO_MULTIMON
 #include <multimon.h>
@@ -845,6 +847,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
      */
 	DragAcceptFiles(hwnd,TRUE);
 
+	// ensure that the common control DLL is loaded
+	InitCommonControls();
+
     /*
      * Finally show the window!
      */
@@ -906,6 +911,18 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     finished:
     cleanup_exit(msg.wParam);	       /* this doesn't return... */
     return msg.wParam;		       /* ... but optimiser doesn't know */
+}
+
+void setup_file_progress_bar(DWORD file_size, int chunk_size) {	
+	show_progress_bar(hwnd, file_size / chunk_size);
+}
+
+void advance_progress_bar() {
+	advance_progress_bar_dlg();
+}
+
+void close_file_progress_bar() {
+	close_file_progress_bar_dlg();
 }
 
 /*
