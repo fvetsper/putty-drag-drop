@@ -434,6 +434,7 @@ Backend rlogin_backend = {
 	NULL,
 	NULL,
 	NULL,
+	NULL,
     "rlogin",
     PROT_RLOGIN,
     513

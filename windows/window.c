@@ -917,8 +917,8 @@ void setup_file_progress_bar(DWORD file_size, int chunk_size) {
 	show_progress_bar(hwnd, file_size / chunk_size);
 }
 
-void advance_progress_bar() {
-	advance_progress_bar_dlg();
+void advance_progress_bar(DWORD file_size, int chunk_size) {
+	advance_progress_bar_dlg(file_size / chunk_size);
 }
 
 void close_file_progress_bar() {
@@ -3256,7 +3256,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		HDROP hDrop = (HDROP)wParam;
 		DragQueryFile(hDrop,0, sourcePath, MAX_PATH);
 		ftransfer->source_path = sourcePath;
-		do_file_transfer(ftransfer);
+		do_file_transfer(ftransfer, term->osc_string, term->osc_strlen);
 		return 0;
 	}
       default:
@@ -5817,8 +5817,7 @@ int from_backend(void *frontend, int is_stderr, const char *data, int len)
 {
 	if (non_terminal_data)
 	{
-		non_terminal_data = 0;
-		return non_term_data(data,len);
+		return non_term_data(data,len, term->osc_string, conf);
 	}
 	else
 	{

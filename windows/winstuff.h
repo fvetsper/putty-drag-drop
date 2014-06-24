@@ -455,7 +455,7 @@ void force_normal(HWND hwnd);
 void modal_about_box(HWND hwnd);
 void show_help(HWND hwnd);
 void show_progress_bar(HWND hwnd, DWORD chunks);
-void advance_progress_bar_dlg();
+void advance_progress_bar_dlg(DWORD chunks);
 void close_file_progress_bar_dlg();
 
 /*

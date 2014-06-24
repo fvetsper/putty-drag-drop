@@ -674,7 +674,11 @@ void show_progress_bar(HWND hwnd, DWORD chunks)
 
 }
 
-void advance_progress_bar_dlg() {
+void advance_progress_bar_dlg(DWORD chunks) {
+	char progress_text[100];
+	int pb_pos = SendMessage(hwndPB, PBM_GETPOS, 0, 0);
+	sprintf(progress_text,"%d%% Upload", (100 * pb_pos) / chunks);
+	SetWindowText(hWndDlg, progress_text);
 	SendMessage(hwndPB, PBM_STEPIT, 0, 0); 
 }
 

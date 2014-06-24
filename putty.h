@@ -408,6 +408,7 @@ extern const struct keyvalwhere gsslibkeywords[]; /* for settings.c */
 extern const char *const ttymodes[];
 
 int non_terminal_data;
+int error_found;
 
 
 enum {
@@ -449,9 +450,10 @@ struct backend_tag {
     void (*unthrottle) (void *handle, int);
     int (*cfg_info) (void *handle);
 	void (*ssh_send_non_terminal_data)(void *handle,char *data, int len);
-    void (*ssh_send_scp)(void *handle, char *dest_path, char *src_path, int processing_data);
+    void (*ssh_send_scp)(void *handle, char *dest_path, char *src_path);
 	int (*ssh_send_secondary_channel)(void *handle,char *data, int len);
 	void (*ssh_open_second_channel)(void *handle);
+	char *(*ssh_get_remote_username)(void *handle);
 	//Socket (*ssh_get_socket) (void *handle);
 	char *name;
     int protocol;
@@ -665,7 +667,7 @@ enum {
 void set_busy_status(void *frontend, int status);
 
 void setup_file_progress_bar(DWORD file_size, int chunk_size);
-void advance_progress_bar(void);
+void advance_progress_bar(DWORD file_size, int chunk_size);
 void close_file_progress_bar(void);
 void cleanup_exit(int);
 
@@ -1017,7 +1019,7 @@ int term_get_userpass_input(Terminal *term, prompts_t *p,
 			    unsigned char *in, int inlen);
 
 int format_arrow_key(char *buf, Terminal *term, int xkey, int ctrl);
-int non_term_data(const char *data, int len);
+int non_term_data(const char *data, int len, char * osc_string, Conf *conf);
 
 /*
  * Exports from logging.c.
@@ -1081,7 +1083,7 @@ void ldisc_free(void *);
 void ldisc_send(void *handle, char *buf, int len, int interactive);
 
 Ftransfer *ftransfer_create(Backend *, void *, HANDLE hwnd);
-void do_file_transfer(void *handle);
+void do_file_transfer(void *handle,char * osc_string, int osc_strlen);
 
 /*
  * Exports from ldiscucs.c.

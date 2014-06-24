@@ -7773,11 +7773,12 @@ static void proccess_scp(struct ssh_channel *c,char * dest_path,char *src_path, 
     struct Packet *pktout;
 	char buf[80];
     char error = *data;
-
+	
+	
 	crState(proccess_scp_state);
 
     crBeginState;
-
+	
 	if (src_path != NULL)
 	{
 		s->src_path = src_path;
@@ -7797,7 +7798,6 @@ static void proccess_scp(struct ssh_channel *c,char * dest_path,char *src_path, 
 		ssh2_pkt_send(ssh, pktout);
 		// wait for response to exec command
 		crReturnV;
-
 		if (pktin) {
 			if (pktin->type != SSH2_MSG_CHANNEL_SUCCESS) {
 				nonfatal("Failed to execute scp command");
@@ -7806,14 +7806,12 @@ static void proccess_scp(struct ssh_channel *c,char * dest_path,char *src_path, 
 		}
 		// wait for the server to send 0 at the first time
 		crReturnV;
-
 		s->f = open_existing_file(s->src_path,&s->size, &s->mtime, &s->atime, &s->permissions);
 		
 
 		scp_send_filename(s->last,s->size,s->permissions);
 		// the server send 1 if there is a permission error
 		crReturnV;
-
 		if (pktin) {
 			if(error = *data) {
 				if (strstr(data,"Permission denied")) 
@@ -7826,7 +7824,7 @@ static void proccess_scp(struct ssh_channel *c,char * dest_path,char *src_path, 
 			}
 		}
 		
-		ssh->processing_data = 1;
+		ssh->processing_data = TRUE;
 
 		setup_file_progress_bar(s->size.lo,4096);
 
@@ -7840,11 +7838,12 @@ static void proccess_scp(struct ssh_channel *c,char * dest_path,char *src_path, 
 			read_from_file(s->f, transbuf, k);
 	
 			scp_send_filedata(transbuf, k);
-			advance_progress_bar();
+			advance_progress_bar(s->size.lo,4096);
 		}
 		close_rfile(s->f);
 		close_file_progress_bar();
 		sshfwd_write_eof(c);
+		non_terminal_data = 0;
 	}
 
     crFinishV;
@@ -10084,12 +10083,12 @@ static int ssh_send_secondary_channel(void *handle, char *data, int len)
 	return ssh_sendbuffer(ssh);
 }
 
-static void ssh_send_scp(void *handle, char *dest_path, char *src_path, int processing_data)
+static void ssh_send_scp(void *handle, char *dest_path, char *src_path)
 {
 	struct ssh_channel * c;
 	Ssh ssh = (Ssh) handle;
 	c = ssh->secondary_chan;
-	ssh->processing_data = processing_data;
+	ssh->processing_data = FALSE;
 	proccess_scp(c, dest_path,src_path, NULL, "");
 }
 
@@ -10104,6 +10103,12 @@ static void ssh_open_second_channel(void *handle)
 		pktout = ssh2_chanopen_init(ssh->secondary_chan,"session");
 		ssh2_pkt_send(ssh, pktout);
 	}
+}
+
+char * ssh_get_remote_username(void *handle)
+{
+	Ssh ssh = (Ssh) handle;
+	return ssh->username;
 }
 
 
@@ -10516,6 +10521,7 @@ Backend ssh_backend = {
 	ssh_send_scp,
 	ssh_send_secondary_channel,
 	ssh_open_second_channel,
+	ssh_get_remote_username,
     "ssh",
     PROT_SSH,
     22
