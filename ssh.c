@@ -776,6 +776,7 @@ static void ssh2_add_channel_data(struct ssh_channel *c, char *buf, int len);
 static void ssh_throttle_all(Ssh ssh, int enable, int bufsize);
 static void ssh2_set_window(struct ssh_channel *c, int newwin);
 static int ssh_sendbuffer(void *handle);
+static int ssh_sendbuffer_second_channel(void *handle);
 static int ssh_do_close(Ssh ssh, int notify_exit);
 static unsigned long ssh_pkt_getuint32(struct Packet *pkt);
 static int ssh2_pkt_getbool(struct Packet *pkt);
@@ -7801,6 +7802,7 @@ static void proccess_scp(struct ssh_channel *c,char * dest_path,char *src_path, 
 		if (pktin) {
 			if (pktin->type != SSH2_MSG_CHANNEL_SUCCESS) {
 				nonfatal("Failed to execute scp command");
+				non_terminal_data = 0;
 				crStopV;
 			} 
 		}
@@ -7835,12 +7837,15 @@ static void proccess_scp(struct ssh_channel *c,char * dest_path,char *src_path, 
 
 			if (uint64_compare(uint64_add32(s->i, k),s->size) > 0) /* i + k > size */ 
 				k = (uint64_subtract(s->size, s->i)).lo; 	/* k = size - i; */
-			read_from_file(s->f, transbuf, k);
+			if ((j = read_from_file(s->f, transbuf, k)) != k) {
+				nonfatal("Read error");
+			}
 	
 			scp_send_filedata(transbuf, k);
 			advance_progress_bar(s->size.lo,4096);
 		}
 		close_rfile(s->f);
+		scp_send_finish();
 		close_file_progress_bar();
 		sshfwd_write_eof(c);
 		non_terminal_data = 0;
@@ -10078,9 +10083,9 @@ static int ssh_send_secondary_channel(void *handle, char *data, int len)
 {
 	Ssh ssh = (Ssh) handle;
 	struct ssh_channel * c = ssh->secondary_chan;
-	ssh2_add_channel_data(c,data,strlen(data));
+	ssh2_add_channel_data(c,data, len);
 	ssh2_try_send(c);
-	return ssh_sendbuffer(ssh);
+	return ssh_sendbuffer_second_channel(ssh);
 }
 
 static void ssh_send_scp(void *handle, char *dest_path, char *src_path)
@@ -10139,6 +10144,39 @@ static int ssh_sendbuffer(void *handle)
 	else
 	    return (override_value +
 		    bufchain_size(&ssh->mainchan->v.v2.outbuffer));
+    }
+
+    return 0;
+}
+
+
+/*
+ * Called to query the current amount of buffered stdin data.
+ */
+static int ssh_sendbuffer_second_channel(void *handle)
+{
+    Ssh ssh = (Ssh) handle;
+    int override_value;
+
+    if (ssh == NULL || ssh->s == NULL || ssh->protocol == NULL)
+	return 0;
+
+    /*
+     * If the SSH socket itself has backed up, add the total backup
+     * size on that to any individual buffer on the stdin channel.
+     */
+    override_value = 0;
+    if (ssh->throttled_all)
+	override_value = ssh->overall_bufsize;
+
+    if (ssh->version == 1) {
+	return override_value;
+    } else if (ssh->version == 2) {
+	if (!ssh->secondary_chan)
+	    return override_value;
+	else
+	    return (override_value +
+			bufchain_size(&ssh->secondary_chan->v.v2.outbuffer));
     }
 
     return 0;
@@ -10522,6 +10560,7 @@ Backend ssh_backend = {
 	ssh_send_secondary_channel,
 	ssh_open_second_channel,
 	ssh_get_remote_username,
+	ssh_sendbuffer_second_channel,
     "ssh",
     PROT_SSH,
     22

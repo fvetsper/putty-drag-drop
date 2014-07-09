@@ -2301,6 +2301,11 @@ void cmdline_error(char *p, ...)
     exit(1);
 }
 
+
+void setup_file_progress_bar(DWORD file_size, int chunk_size) {}
+void advance_progress_bar(DWORD file_size, int chunk_size){}
+void close_file_progress_bar(void){}
+
 /*
  * Main program. (Called `psftp_main' because it gets called from
  * *sftp.c; bit silly, I know, but it had to be called _something_.)

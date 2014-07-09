@@ -458,6 +458,7 @@ Backend serial_backend = {
 	NULL,
 	NULL,
 	NULL,
+	NULL,
     "serial",
     PROT_SERIAL,
     0

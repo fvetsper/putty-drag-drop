@@ -172,7 +172,7 @@ int scp_send_filedata(char *data, int len)
 	 */
 	while (bufsize > MAX_SCP_BUFSIZE) {
 	    do_eventsel_loop();
-		bufsize = back->sendbuffer(backhandle);
+		bufsize = back->sendbuffer_second_channel(backhandle);
 	}
 	return 0;
 }

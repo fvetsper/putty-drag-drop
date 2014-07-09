@@ -454,6 +454,7 @@ struct backend_tag {
 	int (*ssh_send_secondary_channel)(void *handle,char *data, int len);
 	void (*ssh_open_second_channel)(void *handle);
 	char *(*ssh_get_remote_username)(void *handle);
+	int (*sendbuffer_second_channel) (void *handle);
 	//Socket (*ssh_get_socket) (void *handle);
 	char *name;
     int protocol;
