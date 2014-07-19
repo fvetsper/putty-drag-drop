@@ -918,7 +918,7 @@ void setup_file_progress_bar(DWORD file_size, int chunk_size) {
 }
 
 void advance_progress_bar(DWORD file_size, int chunk_size) {
-	advance_progress_bar_dlg(file_size / chunk_size);
+	advance_progress_bar_dlg((file_size + chunk_size - 1) / chunk_size);
 }
 
 void close_file_progress_bar() {
@@ -1182,8 +1182,10 @@ static void enact_pending_netevent(void)
 void check_and_enact_pending_netevent(void)
 {
 	extern int select_result(WPARAM, LPARAM);
-	if(pending_netevent)
+	if(pending_netevent) {
+		pending_netevent = FALSE;
 		select_result(pend_netevent_wParam, pend_netevent_lParam);
+	}
 }
 
 /*
@@ -3254,9 +3256,19 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	{
 		TCHAR sourcePath[MAX_PATH] = {0};
 		HDROP hDrop = (HDROP)wParam;
-		DragQueryFile(hDrop,0, sourcePath, MAX_PATH);
-		ftransfer->source_path = sourcePath;
-		do_file_transfer(ftransfer, term->osc_string, term->osc_strlen);
+		UINT file_count = DragQueryFile(hDrop,0xFFFFFFFF, sourcePath, MAX_PATH);
+		char ** src_path_arr = snewn(file_count,char*);
+		UINT i = 0;
+		for(;i < file_count;i++) {
+			src_path_arr[i] = snewn(MAX_PATH,char);
+			DragQueryFile(hDrop,i, sourcePath, MAX_PATH);
+			strcpy(src_path_arr[i] , sourcePath);
+		}
+
+		ftransfer->source_path_arr = src_path_arr;
+		ftransfer->source_path_arr_length = file_count;
+		do_file_transfer(ftransfer, src_path_arr, file_count);
+		
 		return 0;
 	}
       default:
@@ -5815,14 +5827,7 @@ void frontend_keypress(void *handle)
 
 int from_backend(void *frontend, int is_stderr, const char *data, int len)
 {
-	if (non_terminal_data)
-	{
-		return non_term_data(data,len, term->osc_string, conf);
-	}
-	else
-	{
-		return term_data(term, is_stderr, data, len);
-	}
+	return term_data(term, is_stderr, data, len);
 }
 
 int from_backend_untrusted(void *frontend, const char *data, int len)

@@ -37,6 +37,117 @@ struct RFile {
 };
 
 
+int scp_data(int is_stderr, const char *data, int datalen)
+{
+    unsigned char *p = (unsigned char *) data;
+    unsigned len = (unsigned) datalen;
+
+    /*
+     * stderr data is just spouted to local stderr and otherwise
+     * ignored.
+     */
+    if (is_stderr) {
+	if (len > 0)
+	    if (fwrite(data, 1, len, stderr) < len)
+		/* oh well */;
+	return 0;
+    }
+
+    if ((outlen > 0) && (len > 0)) {
+	unsigned used = outlen;
+	if (used > len)
+	    used = len;
+	memcpy(outptr, p, used);
+	outptr += used;
+	outlen -= used;
+	p += used;
+	len -= used;
+    }
+
+    if (len > 0) {
+	if (pendsize < pendlen + len) {
+	    pendsize = pendlen + len + 4096;
+	    pending = sresize(pending, pendsize, unsigned char);
+	}
+	memcpy(pending + pendlen, p, len);
+	pendlen += len;
+    }
+
+    return 0;
+}
+
+
+static int ssh_scp_recv(unsigned char *buf, int len)
+{
+    outptr = buf;
+    outlen = len;
+
+    /*
+     * See if the pending-input block contains some of what we
+     * need.
+     */
+    if (pendlen > 0) {
+	unsigned pendused = pendlen;
+	if (pendused > outlen)
+	    pendused = outlen;
+	memcpy(outptr, pending, pendused);
+	memmove(pending, pending + pendused, pendlen - pendused);
+	outptr += pendused;
+	outlen -= pendused;
+	pendlen -= pendused;
+	if (pendlen == 0) {
+	    pendsize = 0;
+	    sfree(pending);
+	    pending = NULL;
+	}
+	if (outlen == 0)
+	    return len;
+    }
+
+    while (outlen > 0) {
+	if (back->exitcode(backhandle) >= 0 || do_eventsel_loop() < 0)
+	    return 0;		       /* doom */
+    }
+
+    return len;
+}
+
+/*
+ *  Wait for a response from the other side.
+ *  Return 0 if ok, -1 if error.
+ */
+int scp_response(void)
+{
+    char ch, resp, rbuf[2048];
+    int p;
+
+    if (ssh_scp_recv((unsigned char *) &resp, 1) <= 0)
+		modalfatalbox("Lost connection");
+
+    p = 0;
+    switch (resp) {
+      case 0:			       /* ok */
+	return (0);
+      default:
+	rbuf[p++] = resp;
+	/* fallthrough */
+      case 1:			       /* error */
+      case 2:			       /* fatal error */
+	do {
+	    if (ssh_scp_recv((unsigned char *) &ch, 1) <= 0)
+			modalfatalbox("Protocol error: Lost connection");
+	    rbuf[p++] = ch;
+	} while (p < sizeof(rbuf) && ch != '\n');
+	rbuf[p - 1] = '\0';
+	if (resp == 1)
+		nonfatal("%s", rbuf);
+	else
+	    modalfatalbox("%s", rbuf);
+	errs++;
+	return (-1);
+    }
+}
+
 int do_eventsel_loop()
 {
     int n, nhandles, nallhandles, netindex = 0, error;
@@ -181,5 +292,9 @@ int scp_send_finish(void)
 {
 	back->ssh_send_secondary_channel(backhandle, "", 1);
 	return 1;
+}
+
+void scp_send_pwd(void) {
+	back->ssh_send_secondary_channel(backhandle,"pwd\r",4);
 }
 

@@ -407,7 +407,6 @@ extern const struct keyvalwhere gsslibkeywords[]; /* for settings.c */
 
 extern const char *const ttymodes[];
 
-int non_terminal_data;
 int error_found;
 
 
@@ -449,11 +448,8 @@ struct backend_tag {
      */
     void (*unthrottle) (void *handle, int);
     int (*cfg_info) (void *handle);
-	void (*ssh_send_non_terminal_data)(void *handle,char *data, int len);
-    void (*ssh_send_scp)(void *handle, char *dest_path, char *src_path);
 	int (*ssh_send_secondary_channel)(void *handle,char *data, int len);
-	void (*ssh_open_second_channel)(void *handle);
-	char *(*ssh_get_remote_username)(void *handle);
+	int (*ssh_scp_progress)(void *handle, char **src_path_arr, UINT src_path_arr_length);
 	int (*sendbuffer_second_channel) (void *handle);
 	//Socket (*ssh_get_socket) (void *handle);
 	char *name;
@@ -464,7 +460,8 @@ struct backend_tag {
 struct ftransfer_tag {
 	Backend *back;
     void *backhandle;
-	char *source_path;
+	char **source_path_arr;
+	UINT source_path_arr_length;
 };
 
 extern Backend *backends[];
@@ -1020,7 +1017,6 @@ int term_get_userpass_input(Terminal *term, prompts_t *p,
 			    unsigned char *in, int inlen);
 
 int format_arrow_key(char *buf, Terminal *term, int xkey, int ctrl);
-int non_term_data(const char *data, int len, char * osc_string, Conf *conf);
 
 /*
  * Exports from logging.c.
@@ -1084,7 +1080,7 @@ void ldisc_free(void *);
 void ldisc_send(void *handle, char *buf, int len, int interactive);
 
 Ftransfer *ftransfer_create(Backend *, void *, HANDLE hwnd);
-void do_file_transfer(void *handle,char * osc_string, int osc_strlen);
+void do_file_transfer(void *handle,char ** src_path_arr, int file_count);
 
 /*
  * Exports from ldiscucs.c.
@@ -1327,11 +1323,14 @@ typedef struct RFile RFile;
 int init_pscp_small(Backend *_back, void *_backhandle, HANDLE hwnd);
 int scp_send_filetimes(unsigned long mtime, unsigned long atime);
 int scp_send_filename(char *name, uint64 size, int permissions);
+int scp_response(void);
 int scp_send_filedata(char *data, int len);
 int scp_send_finish(void);
+void scp_send_pwd(void);
 RFile* open_existing_file(char *name, uint64 *size, unsigned long *mtime, unsigned long *atime, long *perms);
 int read_from_file(RFile *f, void *buffer, int length);
 void close_rfile(RFile *f);
+int scp_data(int is_stderr, const char *data, int datalen);
 
 void check_and_enact_pending_netevent(void);
 

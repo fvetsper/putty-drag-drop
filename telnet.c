@@ -1137,9 +1137,6 @@ Backend telnet_backend = {
 	NULL,
 	NULL,
 	NULL,
-	NULL,
-	NULL,
-	NULL,
     "telnet",
     PROT_TELNET,
     23

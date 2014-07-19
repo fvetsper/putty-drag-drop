@@ -346,9 +346,6 @@ Backend raw_backend = {
 	NULL,
 	NULL,
 	NULL,
-	NULL,
-	NULL,
-	NULL,
     "raw",
     PROT_RAW,
     0
