@@ -7828,7 +7828,7 @@ static void proccess_scp(Ssh ssh, struct Packet *pktin, const char * data, int l
 				}
 			}
 		
-			setup_file_progress_bar(s->size.lo,4096);
+			setup_file_progress_bar(s->size.lo,4096,s->last);
 
 			for (s->i = uint64_make(0,0); uint64_compare(s->i,s->size) < 0; s->i = uint64_add32(s->i,4096)) 
 			{

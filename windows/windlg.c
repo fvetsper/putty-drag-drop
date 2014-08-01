@@ -233,19 +233,28 @@ static int CALLBACK AboutProc(HWND hwnd, UINT msg,
 
 static int CALLBACK ProgressBarProc(HWND hWndDlg, UINT msg,
 			      WPARAM wParam, LPARAM lParam) {
-	switch(msg)
-	{
-		case WM_INITDIALOG:
-			CreateWindowEx(0, PROGRESS_CLASS, NULL,
+	switch (msg) {
+      case WM_INITDIALOG:
+		CreateWindowEx(0, PROGRESS_CLASS, NULL,
 						   WS_CHILD | WS_VISIBLE,
 					  20, 20, 260, 17,
 					  hWndDlg, NULL, hinst, NULL);
 
-			SendMessage(hwndPB, PBM_SETRANGE, 0, MAKELPARAM(0, lParam));
-			SendMessage(hwndPB, PBM_SETSTEP, (WPARAM) 1, 0); 
-
-			return TRUE;
-	}
+		SendMessage(hwndPB, PBM_SETRANGE, 0, MAKELPARAM(0, lParam));
+		SendMessage(hwndPB, PBM_SETSTEP, (WPARAM) 1, 0); 
+		return 1;
+      case WM_COMMAND:
+		switch (LOWORD(wParam)) {
+		  case IDCANCEL:
+			EndDialog(hWndDlg, 1);
+			return 0;
+		}
+		return 0;
+		  case WM_CLOSE:
+		EndDialog(hWndDlg, 1);
+		return 0;
+    }
+    return 0;
 }
 
 static int SaneDialogBox(HINSTANCE hinst,
@@ -636,10 +645,11 @@ void show_help(HWND hwnd)
     launch_help(hwnd, NULL);
 }
 
-void show_progress_bar(HWND hwnd, DWORD chunks)
+void show_progress_bar(HWND hwnd, DWORD chunks, char * file_name)
 {
 	int n = 0;
 	WNDCLASS wc;
+	LRESULT result;
 
 	wc.style = 0;
 	wc.lpfnWndProc = DefDlgProc;
@@ -652,22 +662,23 @@ void show_progress_bar(HWND hwnd, DWORD chunks)
     wc.lpszMenuName = NULL;
     wc.lpszClassName = "ProgressBar";
     RegisterClass(&wc);
-
-
+	
+	
 	hWndDlg = CreateWindowEx(0, "ProgressBar", NULL,
 						   WS_OVERLAPPEDWINDOW,
 					  300, 300, 400, 260,
 					  hwnd, NULL, hinst, NULL);
+
 
 	hwndPB = CreateWindowEx(0, PROGRESS_CLASS, NULL,
 						   WS_CHILD | WS_VISIBLE,
 					  20, 20, 260, 17,
 					  hWndDlg, NULL, hinst, NULL);
 
-
 	ShowWindow(hWndDlg, SW_SHOW);
 	UpdateWindow(hWndDlg);
-
+	
+	SetWindowText(hWndDlg, file_name);
 	SendMessage(hwndPB, PBM_SETRANGE, 0, MAKELPARAM(0, chunks));
 	SendMessage(hwndPB, PBM_SETSTEP, (WPARAM) 1, 0); 
 	SendMessage(hwndPB, PBM_SETBARCOLOR , 0, (LPARAM) RGB(51,153,51)); 
@@ -677,8 +688,8 @@ void show_progress_bar(HWND hwnd, DWORD chunks)
 void advance_progress_bar_dlg(DWORD chunks) {
 	char progress_text[100];
 	int pb_pos = SendMessage(hwndPB, PBM_GETPOS, 0, 0);
-	sprintf(progress_text,"%d%% Upload", (100 * pb_pos) / chunks);
-	SetWindowText(hWndDlg, progress_text);
+	//sprintf(progress_text,"Copying Files...");
+	//SetWindowText(hWndDlg, progress_text);
 	SendMessage(hwndPB, PBM_STEPIT, 0, 0); 
 }
 

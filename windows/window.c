@@ -913,8 +913,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     return msg.wParam;		       /* ... but optimiser doesn't know */
 }
 
-void setup_file_progress_bar(DWORD file_size, int chunk_size) {	
-	show_progress_bar(hwnd, file_size / chunk_size);
+void setup_file_progress_bar(DWORD file_size, int chunk_size, char * file_name) {	
+	show_progress_bar(hwnd, file_size / chunk_size, file_name);
 }
 
 void advance_progress_bar(DWORD file_size, int chunk_size) {

@@ -13,6 +13,7 @@
 #define IDD_ABOUTBOX     111
 #define IDD_RECONF       112
 #define IDD_LICENCEBOX   113
+#define IDD_UPLOADBOX	 114
 
 #define IDN_LIST        1001
 #define IDN_COPY        1002
